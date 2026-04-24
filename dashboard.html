@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Painel do Professor</title>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #020617;
+            color: white;
+            text-align: center;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 12px;
+        }
+
+        h1 {
+            color: #22c55e;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>📊 Dashboard da Turma</h1>
+
+    <div class="card">
+        <h2>📈 Média da Turma</h2>
+        <h3 id="media">0</h3>
+    </div>
+
+    <div class="card">
+        <h2>🏆 Ranking</h2>
+        <ul id="ranking"></ul>
+    </div>
+
+    <div class="card">
+        <h2>📊 Gráfico de Desempenho</h2>
+        <canvas id="grafico"></canvas>
+    </div>
+
+    <script>
+         const firebaseConfig = {
+            apiKey: "AIzaSyDCAY8iK8VxHNhSsrExkfchEL8jaH9rXiI",
+            authDomain: "jogo-data-science-e15eb.firebaseapp.com",
+            databaseURL: "https://jogo-data-science-e15eb-default-rtdb.firebaseio.com",
+            projectId: "jogo-data-science-e15eb",
+            storageBucket: "jogo-data-science-e15eb.firebasestorage.app",
+            messagingSenderId: "313080801630",
+            appId: "1:313080801630:web:94e16181b7355bde8b47cf",
+            measurementId: "G-SBBJEL818M"
+        };
+
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let chart;
+
+        // Atualização em tempo real
+        db.ref("jogos").on("value", snapshot => {
+            let dados = [];
+
+            snapshot.forEach(child => {
+                dados.push(child.val());
+            });
+
+            atualizarDashboard(dados);
+        });
+
+        function atualizarDashboard(dados) {
+
+            if (dados.length === 0) return;
+
+            // Média
+            let media = dados.reduce((s, d) => s + d.pontos, 0) / dados.length;
+            document.getElementById("media").innerText = media.toFixed(2);
+
+            // Ranking
+            dados.sort((a, b) => b.pontos - a.pontos);
+
+            let lista = document.getElementById("ranking");
+            lista.innerHTML = "";
+
+            dados.forEach(d => {
+                let item = document.createElement("li");
+                item.innerText = `${d.nome} - ${d.pontos} pts`;
+                lista.appendChild(item);
+            });
+
+            // Gráfico
+            let nomes = dados.map(d => d.nome);
+            let pontos = dados.map(d => d.pontos);
+
+            if (chart) chart.destroy();
+
+            chart = new Chart(document.getElementById("grafico"), {
+                type: 'bar',
+                data: {
+                    labels: nomes,
+                    datasets: [{
+                        label: 'Pontuação',
+                        data: pontos
+                    }]
+                }
+            });
+        }
+    </script>
+
+</body>
+
+</html>
