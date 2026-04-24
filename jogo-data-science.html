@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jogo Online - Data Science</title>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #0f172a;
+            color: white;
+            margin: 0;
+            padding: 12px;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-size: clamp(1.2rem, 5vw, 1.8rem);
+            margin: 10px 0 16px;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 20px 16px;
+            margin: 0 auto 16px;
+            border-radius: 16px;
+            max-width: 480px;
+            width: 100%;
+        }
+
+        .card h2 {
+            font-size: clamp(1rem, 4vw, 1.3rem);
+            margin: 6px 0;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        #nome {
+            flex: 1;
+            min-width: 160px;
+            max-width: 260px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 2px solid #334155;
+            background: #0f172a;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #nome:focus {
+            border-color: #6366f1;
+        }
+
+        .btn-iniciar {
+            padding: 12px 22px;
+            border-radius: 10px;
+            border: none;
+            background: #6366f1;
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            white-space: nowrap;
+        }
+
+        .btn-iniciar:active {
+            background: #4f46e5;
+            transform: scale(0.97);
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin: 14px 0;
+        }
+
+        .stat-box {
+            background: #0f172a;
+            border-radius: 12px;
+            padding: 12px 24px;
+            flex: 1;
+            max-width: 150px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        #tempo .stat-value {
+            color: #f59e0b;
+        }
+
+        #pontos .stat-value {
+            color: #34d399;
+        }
+
+        /* Botão de clique principal */
+        .btn-clique-wrapper {
+            margin: 8px 0 4px;
+            display: flex;
+            justify-content: center;
+        }
+
+        #btn-clique {
+            width: min(280px, 90vw);
+            height: min(280px, 90vw);
+            border-radius: 50%;
+            border: none;
+            background: radial-gradient(circle at 35% 35%, #a78bfa, #6366f1 60%, #4338ca);
+            color: white;
+            font-size: clamp(1.4rem, 6vw, 2rem);
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow:
+                0 0 0 12px rgba(99, 102, 241, 0.15),
+                0 0 0 24px rgba(99, 102, 241, 0.07),
+                0 8px 32px rgba(99, 102, 241, 0.5);
+            transition: transform 0.08s, box-shadow 0.08s;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            letter-spacing: 1px;
+        }
+
+        #btn-clique .emoji {
+            font-size: clamp(2rem, 8vw, 3rem);
+            line-height: 1;
+        }
+
+        #btn-clique:active {
+            transform: scale(0.93);
+            box-shadow:
+                0 0 0 6px rgba(99, 102, 241, 0.2),
+                0 2px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        #btn-clique.inativo {
+            background: radial-gradient(circle at 35% 35%, #475569, #334155);
+            box-shadow:
+                0 0 0 12px rgba(71, 85, 105, 0.1),
+                0 4px 16px rgba(0,0,0,0.3);
+            cursor: not-allowed;
+        }
+
+        /* Ranking */
+        .card h2.ranking-title {
+            font-size: clamp(1rem, 4vw, 1.2rem);
+            color: #fbbf24;
+            margin-bottom: 12px;
+        }
+
+        #ranking {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            text-align: left;
+        }
+
+        #ranking li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-bottom: 6px;
+            background: #0f172a;
+            font-size: clamp(0.85rem, 3.5vw, 1rem);
+        }
+
+        #ranking li:first-child {
+            background: linear-gradient(90deg, #78350f, #1e293b);
+            border: 1px solid #f59e0b44;
+        }
+
+        #ranking li:nth-child(2) {
+            background: linear-gradient(90deg, #1e3a5f, #1e293b);
+            border: 1px solid #60a5fa44;
+        }
+
+        #ranking li:nth-child(3) {
+            background: linear-gradient(90deg, #1c3327, #1e293b);
+            border: 1px solid #34d39944;
+        }
+
+        .rank-pos {
+            font-weight: bold;
+            font-size: 1.1rem;
+            min-width: 28px;
+        }
+
+        .rank-pts {
+            margin-left: auto;
+            font-weight: bold;
+            color: #a78bfa;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🎮 Clique Rápido</h1>
+
+    <div class="card">
+        <div class="input-row">
+            <input id="nome" placeholder="Seu nome" autocomplete="off">
+            <button class="btn-iniciar" onclick="iniciar()">▶ Iniciar</button>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-box" id="tempo">
+                <div class="stat-label">Tempo</div>
+                <div class="stat-value" id="tempo-val">10</div>
+            </div>
+            <div class="stat-box" id="pontos">
+                <div class="stat-label">Pontos</div>
+                <div class="stat-value" id="pontos-val">0</div>
+            </div>
+        </div>
+
+        <div class="btn-clique-wrapper">
+            <button id="btn-clique" class="inativo" onclick="clicar()">
+                <span class="emoji">👆</span>
+                CLIQUE!
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 class="ranking-title">🏆 Ranking ao vivo</h2>
+        <ul id="ranking"></ul>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDCAY8iK8VxHNhSsrExkfchEL8jaH9rXiI",
+            authDomain: "jogo-data-science-e15eb.firebaseapp.com",
+            databaseURL: "https://jogo-data-science-e15eb-default-rtdb.firebaseio.com",
+            projectId: "jogo-data-science-e15eb",
+            storageBucket: "jogo-data-science-e15eb.firebasestorage.app",
+            messagingSenderId: "313080801630",
+            appId: "1:313080801630:web:94e16181b7355bde8b47cf",
+            measurementId: "G-SBBJEL818M"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let tempo = 10;
+        let pontos = 0;
+        let jogando = false;
+
+        const btnClique = document.getElementById("btn-clique");
+
+        function iniciar() {
+            tempo = 10;
+            pontos = 0;
+            jogando = true;
+
+            document.getElementById("tempo-val").innerText = tempo;
+            document.getElementById("pontos-val").innerText = pontos;
+            btnClique.classList.remove("inativo");
+
+            let timer = setInterval(() => {
+                tempo--;
+                document.getElementById("tempo-val").innerText = tempo;
+
+                if (tempo <= 0) {
+                    clearInterval(timer);
+                    jogando = false;
+                    btnClique.classList.add("inativo");
+                    salvar();
+                }
+            }, 1000);
+        }
+
+        function clicar() {
+            if (jogando) {
+                pontos++;
+                document.getElementById("pontos-val").innerText = pontos;
+            }
+        }
+
+        function salvar() {
+            let nome = document.getElementById("nome").value.trim() || "Aluno";
+            db.ref("jogos").push({
+                nome: nome,
+                pontos: pontos,
+                tempo: 10,
+                desempenho: pontos / 10
+            });
+        }
+
+        const medalhas = ["🥇", "🥈", "🥉"];
+
+        db.ref("jogos").on("value", snapshot => {
+            let dados = [];
+            snapshot.forEach(child => dados.push(child.val()));
+            dados.sort((a, b) => b.pontos - a.pontos);
+
+            let lista = document.getElementById("ranking");
+            lista.innerHTML = "";
+
+            dados.forEach((d, i) => {
+                let item = document.createElement("li");
+                let pos = medalhas[i] || `${i + 1}º`;
+                item.innerHTML = `<span class="rank-pos">${pos}</span> ${d.nome} <span class="rank-pts">${d.pontos} pts</span>`;
+                lista.appendChild(item);
+            });
+        });
+    </script>
+
+</body>
+</html>
